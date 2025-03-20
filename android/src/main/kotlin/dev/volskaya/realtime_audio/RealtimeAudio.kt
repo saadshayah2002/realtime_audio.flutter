@@ -265,9 +265,6 @@ class RealtimeAudio(
       AudioTrack.MODE_STREAM,
       audioSessionId ?: AudioManager.AUDIO_SESSION_ID_GENERATE,
     )
-
-  import android.media.audiofx.AcousticEchoCanceler
-
   private fun getRecorder(): AudioRecord {
     val permission = ActivityCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
     val isPermissionGranted = permission == PackageManager.PERMISSION_GRANTED
@@ -285,25 +282,30 @@ class RealtimeAudio(
     val minBufferSize = recorderFormat.getMinBufferSizeRecord()
     val bufferSize = minBufferSize * recorderFormat.getBitRatio()
 
-    val audioRecord = AudioRecord(
-      MediaRecorder.AudioSource.VOICE_COMMUNICATION, // Use VOICE_COMMUNICATION for better echo cancellation
+    val audioSessionId = AudioManager.AUDIO_SESSION_ID_GENERATE
+
+    val recorder = AudioRecord(
+      MediaRecorder.AudioSource.VOICE_COMMUNICATION, // Use VOICE_COMMUNICATION for better AEC
       recorderFormat.sampleRate,
       recorderFormat.channelMask,
       recorderFormat.encoding,
-      bufferSize
+      bufferSize,
     )
 
-    // Enable Acoustic Echo Canceler if supported
+    // Enable Acoustic Echo Canceler if available
     if (AcousticEchoCanceler.isAvailable()) {
-      val aec = AcousticEchoCanceler.create(audioRecord.audioSessionId)
-      aec?.enabled = true
+      val aec = AcousticEchoCanceler.create(recorder.audioSessionId)
+      aec?.setEnabled(true)
+      Log.d("RealtimeAudio", "Acoustic Echo Canceler enabled: ${aec?.enabled}")
+    } else {
+      Log.w("RealtimeAudio", "Acoustic Echo Canceler not available on this device.")
     }
 
-    return audioRecord.also {
-      recorderData = ShortArray(recorderChunkBufferSize)
-      it.positionNotificationPeriod = recorderChunkBufferSize
-      it.setRecordPositionUpdateListener(this)
-    }
+    recorderData = ShortArray(recorderChunkBufferSize)
+    recorder.positionNotificationPeriod = recorderChunkBufferSize
+    recorder.setRecordPositionUpdateListener(this)
+
+    return recorder
   }
 
   //
