@@ -266,19 +266,6 @@ class RealtimeAudio(
       audioSessionId ?: AudioManager.AUDIO_SESSION_ID_GENERATE,
     )
   private fun getRecorder(): AudioRecord {
-    val permission = ActivityCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
-    val isPermissionGranted = permission == PackageManager.PERMISSION_GRANTED
-
-    if (!isPermissionGranted) {
-      throw Error("No permission to record.")
-    }
-
-    val recorderChunkBufferSize =
-      (recorderFormat.sampleRate.toDouble() * (arguments.recorderChunkInterval.toDouble() / 1000)).roundToInt()
-
-    assert(recorderFormat.encoding == AudioFormat.ENCODING_PCM_16BIT)
-    assert(recorderFormat.encoding == playerOutputFormat.encoding)
-
     val minBufferSize = recorderFormat.getMinBufferSizeRecord()
     val bufferSize = minBufferSize * recorderFormat.getBitRatio()
 
